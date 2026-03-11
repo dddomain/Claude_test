@@ -152,12 +152,10 @@ function renderDashboard() {
   const priMax = Math.max(1, ...Object.values(byPriority));
   const priColors = { '高': 'pri-high', '中': 'pri-mid', '低': 'pri-low' };
   document.getElementById('priority-bars').innerHTML = Object.entries(byPriority).map(([k, v]) =>
-    `<div class="flex items-center gap-2.5 mb-2.5">
-      <div class="text-xs text-gray-500 w-6 flex-shrink-0">${k}</div>
-      <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div class="bar-fill ${priColors[k]} h-full rounded-full transition-colors" style="width:${v/priMax*100}%"></div>
-      </div>
-      <div class="text-xs text-gray-500 w-6 text-right flex-shrink-0">${v}</div>
+    `<div class="bar-row">
+      <div class="bar-label">${k}</div>
+      <div class="bar-track"><div class="bar-fill ${priColors[k]}" style="width:${v/priMax*100}%"></div></div>
+      <div class="bar-count">${v}</div>
     </div>`
   ).join('');
 
@@ -167,15 +165,13 @@ function renderDashboard() {
   const catColors = ['#2563eb','#7c3aed','#db2777','#d97706','#16a34a','#0891b2'];
   document.getElementById('category-bars').innerHTML = cats.length
     ? cats.map(([k, v], i) =>
-        `<div class="flex items-center gap-2.5 mb-2.5">
-          <div class="text-xs text-gray-500 w-14 flex-shrink-0 overflow-hidden whitespace-nowrap" title="${esc(k)}">${k.length > 5 ? k.slice(0,5)+'…' : k}</div>
-          <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div class="h-full rounded-full transition-colors" style="width:${v/catMax*100}%;background:${catColors[i%catColors.length]}"></div>
-          </div>
-          <div class="text-xs text-gray-500 w-6 text-right flex-shrink-0">${v}</div>
+        `<div class="bar-row">
+          <div class="bar-label" title="${k}">${k.length > 6 ? k.slice(0,6)+'…' : k}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${v/catMax*100}%;background:${catColors[i%catColors.length]}"></div></div>
+          <div class="bar-count">${v}</div>
         </div>`
       ).join('')
-    : '<p class="text-gray-400 text-xs">カテゴリなし</p>';
+    : '<p style="color:var(--text-3);font-size:13px;">カテゴリなし</p>';
 
   // Upcoming
   const upcoming = getUpcoming();
@@ -185,13 +181,13 @@ function renderDashboard() {
         const overdue = t.due < todayStr;
         const daysLeft = Math.round((new Date(t.due) - new Date(todayStr)) / 86400000);
         const dueLabel = overdue ? `${Math.abs(daysLeft)}日超過` : daysLeft === 0 ? '今日' : `${daysLeft}日後`;
-        return `<div class="flex items-center gap-3 py-2.5 border-b border-gray-200 text-[13px]">
+        return `<div class="upcoming-row">
           ${statusBadge(t.status)}
-          <span class="flex-1 font-medium">${esc(t.name)}</span>
-          <span class="upcoming-due text-gray-500 text-xs whitespace-nowrap ${overdue ? 'overdue' : ''}">${dueLabel} (${t.due})</span>
+          <span class="upcoming-name">${esc(t.name)}</span>
+          <span class="upcoming-due ${overdue ? 'overdue' : ''}">${dueLabel} (${t.due})</span>
         </div>`;
       }).join('')
-    : '<p class="text-gray-400 text-[13px] text-center py-4">期限が近いタスクはありません</p>';
+    : '<p class="no-upcoming">期限が近いタスクはありません</p>';
 }
 
 /* ============================================================
@@ -225,18 +221,18 @@ function renderTable() {
       ? (t.due < todayStr && t.status !== '完了' ? 'due-overdue' : t.due === todayStr ? 'due-soon' : '')
       : '';
     return `<tr data-id="${t.id}" class="${sel ? 'selected' : ''}">
-      <td class="w-9 px-3.5 py-2.5 border-b border-gray-200"><input type="checkbox" class="row-check" ${sel ? 'checked' : ''} /></td>
-      <td class="w-12 px-3.5 py-2.5 border-b border-gray-200 text-[13px] text-gray-400">${t.id}</td>
-      <td class="min-w-[200px] px-3.5 py-2.5 border-b border-gray-200 text-[13px]"><span class="editable" data-field="name" data-id="${t.id}">${esc(t.name)}</span></td>
-      <td class="w-[110px] px-3.5 py-2.5 border-b border-gray-200 text-[13px] max-md:hidden"><span class="editable" data-field="category" data-id="${t.id}">${esc(t.category||'—')}</span></td>
-      <td class="w-20 px-3.5 py-2.5 border-b border-gray-200 text-[13px]">${priorityBadge(t.priority)}</td>
-      <td class="w-[90px] px-3.5 py-2.5 border-b border-gray-200 text-[13px]">${statusBadge(t.status)}</td>
-      <td class="w-[110px] px-3.5 py-2.5 border-b border-gray-200 text-[13px] ${dueClass}">${t.due || '—'}</td>
-      <td class="min-w-[140px] px-3.5 py-2.5 border-b border-gray-200 text-[13px] text-gray-500 max-md:hidden"><span class="editable" data-field="note" data-id="${t.id}">${esc(t.note||'')}</span></td>
-      <td class="w-[72px] px-3.5 py-2.5 border-b border-gray-200">
+      <td class="col-check"><input type="checkbox" class="row-check" ${sel ? 'checked' : ''} /></td>
+      <td class="col-id">${t.id}</td>
+      <td class="col-name"><span class="editable" data-field="name" data-id="${t.id}">${esc(t.name)}</span></td>
+      <td class="col-cat"><span class="editable" data-field="category" data-id="${t.id}">${esc(t.category||'—')}</span></td>
+      <td class="col-pri">${priorityBadge(t.priority)}</td>
+      <td class="col-sta">${statusBadge(t.status)}</td>
+      <td class="col-due ${dueClass}">${t.due || '—'}</td>
+      <td class="col-note"><span class="editable" data-field="note" data-id="${t.id}">${esc(t.note||'')}</span></td>
+      <td class="col-act">
         <div class="row-actions">
-          <button class="btn-row" title="編集" data-action="edit" data-id="${t.id}">✎</button>
-          <button class="btn-row danger" title="削除" data-action="delete" data-id="${t.id}">✕</button>
+          <button class="btn-icon" title="編集" data-action="edit" data-id="${t.id}">✎</button>
+          <button class="btn-icon danger" title="削除" data-action="delete" data-id="${t.id}">✕</button>
         </div>
       </td>
     </tr>`;
